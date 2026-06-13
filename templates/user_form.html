@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}{% if user %}Edit{% else %}Add{% endif %} Staff — SwtchTech{% endblock %}
+{% block page_title %}{% if user %}Edit{% else %}Add{% endif %} Staff Account{% endblock %}
+{% block content %}
+<div style="max-width:520px">
+  <div style="margin-bottom:20px"><a href="{{ url_for('users') }}" class="btn btn-outline"><i class="fa fa-arrow-left"></i> Back</a></div>
+  <div class="card">
+    <div class="card-header"><h3><i class="fa fa-user-cog" style="color:var(--accent)"></i> {% if user %}Edit{% else %}New{% endif %} Staff Account</h3></div>
+    <div class="card-body">
+      <form method="POST">
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input type="text" name="full_name" value="{{ user.full_name if user }}" required>
+        </div>
+        {% if not user %}
+        <div class="form-group">
+          <label>Username *</label>
+          <input type="text" name="username" required>
+        </div>
+        {% endif %}
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" name="email" value="{{ user.email if user }}">
+        </div>
+        <div class="form-group">
+          <label>Role *</label>
+          <select name="role">
+            <option value="sales" {{ 'selected' if user and user.role == 'sales' }}>Sales Staff</option>
+            <option value="admin" {{ 'selected' if user and user.role == 'admin' }}>Admin</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Password {% if user %}(leave blank to keep current){% else %}*{% endif %}</label>
+          <input type="password" name="password" {{ 'required' if not user }}>
+        </div>
+        {% if user %}
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" name="active" {{ 'checked' if user.active }} style="width:auto"> Active Account
+          </label>
+        </div>
+        {% endif %}
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+          <a href="{{ url_for('users') }}" class="btn btn-outline">Cancel</a>
+          <button type="submit" class="btn btn-gold"><i class="fa fa-save"></i> Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

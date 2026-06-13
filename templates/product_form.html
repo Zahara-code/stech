@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}{{ action }} Product — SwtchTech{% endblock %}
+{% block page_title %}{{ action }} Product{% endblock %}
+{% block content %}
+<div style="max-width:700px">
+  <div style="margin-bottom:20px">
+    <a href="{{ url_for('inventory') }}" class="btn btn-outline"><i class="fa fa-arrow-left"></i> Back to Inventory</a>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fa fa-{% if action == 'Add' %}plus{% else %}edit{% endif %}" style="color:var(--accent)"></i> {{ action }} Product</h3>
+    </div>
+    <div class="card-body">
+      <form method="POST">
+        <div class="form-grid">
+          <div class="form-group" style="grid-column:1/-1">
+            <label>Product Name *</label>
+            <input type="text" name="name" value="{{ product.name if product }}" placeholder="e.g. Samsung Galaxy S24 Ultra" required>
+          </div>
+          <div class="form-group">
+            <label>SKU / Product Code *</label>
+            <input type="text" name="sku" value="{{ product.sku if product }}" placeholder="e.g. SAM-S24U-256" required {{ 'readonly' if product }}>
+          </div>
+          <div class="form-group">
+            <label>Category *</label>
+            <select name="category_id" required>
+              <option value="">Select category...</option>
+              {% for c in categories %}
+              <option value="{{ c.id }}" {{ 'selected' if product and product.category_id == c.id }}>{{ c.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Brand</label>
+            <input type="text" name="brand" value="{{ product.brand if product }}" placeholder="e.g. Samsung, Apple, HP">
+          </div>
+          <div class="form-group">
+            <label>Model</label>
+            <input type="text" name="model" value="{{ product.model if product }}" placeholder="e.g. S24 Ultra">
+          </div>
+          <div class="form-group">
+            <label>Cost Price (KSh) *</label>
+            <input type="number" name="cost_price" value="{{ product.cost_price if product else '' }}" step="0.01" min="0" placeholder="0" required>
+          </div>
+          <div class="form-group">
+            <label>Selling Price (KSh) *</label>
+            <input type="number" name="selling_price" value="{{ product.selling_price if product else '' }}" step="0.01" min="0" placeholder="0" required>
+          </div>
+          <div class="form-group">
+            <label>Quantity in Stock</label>
+            <input type="number" name="quantity" value="{{ product.quantity if product else 0 }}" min="0" required>
+          </div>
+          <div class="form-group">
+            <label>Low Stock Alert At</label>
+            <input type="number" name="low_stock_threshold" value="{{ product.low_stock_threshold if product else 5 }}" min="0">
+          </div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label>Description</label>
+            <textarea name="description" placeholder="Product description, specifications...">{{ product.description if product }}</textarea>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+          <a href="{{ url_for('inventory') }}" class="btn btn-outline">Cancel</a>
+          <button type="submit" class="btn btn-gold"><i class="fa fa-save"></i> {{ action }} Product</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

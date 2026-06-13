@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Customers{% endblock %}
+{% block page_title %}Customers{% endblock %}
+
+{% block content %}
+<form class="search-bar" method="GET">
+  <div class="search-input-wrap" style="flex:1">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Search by name or phone…">
+  </div>
+  <button type="submit" class="btn btn-dark">Search</button>
+  <a href="{{ url_for('add_customer') }}" class="btn btn-primary" style="margin-left:auto">
+    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Add Customer
+  </a>
+</form>
+
+<div class="table-wrapper">
+  <table>
+    <thead>
+      <tr><th>Name</th><th>Phone</th><th>Email</th><th>Address</th><th>Total Purchases</th><th>Joined</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for c in customers %}
+      <tr>
+        <td><strong>{{ c.name }}</strong></td>
+        <td>{{ c.phone or '—' }}</td>
+        <td>{{ c.email or '—' }}</td>
+        <td>{{ c.address or '—' }}</td>
+        <td><span class="badge badge-gold">{{ c.sales|length }} sale{{ 's' if c.sales|length != 1 else '' }}</span></td>
+        <td>{{ c.created_at.strftime('%d %b %Y') }}</td>
+        <td>
+          <a href="{{ url_for('edit_customer', id=c.id) }}" class="btn-icon">
+            <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7"><div class="empty-state" style="padding:32px"><p>No customers yet</p></div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% block title %}Inventory — SwtchTech{% endblock %}
+{% block page_title %}Inventory{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+  <div>
+    <h2 style="font-size:22px;font-weight:800;color:var(--gray-800)">Product Inventory</h2>
+    <p style="color:var(--gray-400);font-size:13px">{{ products|length }} product(s) found</p>
+  </div>
+  <a href="{{ url_for('add_product') }}" class="btn btn-gold"><i class="fa fa-plus"></i> Add Product</a>
+</div>
+
+<div class="card" style="margin-bottom:16px">
+  <div class="card-body" style="padding:14px 20px">
+    <form method="GET" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+      <div>
+        <label style="font-size:11px;color:var(--gray-400);font-weight:700;display:block;margin-bottom:4px">SEARCH</label>
+        <input type="text" name="search" value="{{ search }}" placeholder="Name, SKU, brand..." style="width:220px">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--gray-400);font-weight:700;display:block;margin-bottom:4px">CATEGORY</label>
+        <select name="category" style="width:160px">
+          <option value="">All Categories</option>
+          {% for c in categories %}
+          <option value="{{ c.id }}" {{ 'selected' if selected_category == c.id|string }}>{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--gray-400);font-weight:700;display:block;margin-bottom:4px">STATUS</label>
+        <select name="status" style="width:140px">
+          <option value="">All</option>
+          <option value="low" {{ 'selected' if selected_status == 'low' }}>Low Stock</option>
+          <option value="out" {{ 'selected' if selected_status == 'out' }}>Out of Stock</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" type="submit"><i class="fa fa-search"></i> Filter</button>
+      <a href="{{ url_for('inventory') }}" class="btn btn-outline"><i class="fa fa-times"></i> Clear</a>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>SKU</th>
+          <th>Category</th>
+          <th>Cost</th>
+          <th>Price</th>
+          <th>Margin</th>
+          <th>Stock</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for p in products %}
+      <tr>
+        <td>
+          <div style="font-weight:700;font-size:14px">{{ p.name }}</div>
+          {% if p.brand %}<div style="font-size:11px;color:var(--gray-400)">{{ p.brand }} {% if p.model %}· {{ p.model }}{% endif %}</div>{% endif %}
+        </td>
+        <td style="font-family:monospace;font-size:12px;color:var(--gray-600)">{{ p.sku }}</td>
+        <td><span class="badge badge-info">{{ p.category.name }}</span></td>
+        <td>KSh {{ "{:,.0f}".format(p.cost_price) }}</td>
+        <td><strong>KSh {{ "{:,.0f}".format(p.selling_price) }}</strong></td>
+        <td style="color:{% if p.profit_margin > 20 %}var(--success){% elif p.profit_margin > 0 %}var(--warning){% else %}var(--danger){% endif %};font-weight:700">{{ p.profit_margin }}%</td>
+        <td>
+          <strong class="stock-{{ p.stock_status }}">{{ p.quantity }}</strong>
+          <div style="font-size:10px;color:var(--gray-400)">min: {{ p.low_stock_threshold }}</div>
+        </td>
+        <td>
+          {% if p.stock_status == 'ok' %}<span class="badge badge-success">In Stock</span>
+          {% elif p.stock_status == 'low' %}<span class="badge badge-warning">Low Stock</span>
+          {% else %}<span class="badge badge-danger">Out of Stock</span>{% endif %}
+        </td>
+        <td>
+          <div style="display:flex;gap:4px">
+            <a href="{{ url_for('edit_product', pid=p.id) }}" class="btn btn-outline btn-sm btn-icon" title="Edit"><i class="fa fa-edit"></i></a>
+            <button class="btn btn-outline btn-sm btn-icon" onclick="openStockModal({{ p.id }},'{{ p.name|replace("'","") }}',{{ p.quantity }})" title="Update Stock"><i class="fa fa-cubes"></i></button>
+            {% if session.role == 'admin' %}
+            <form method="POST" action="{{ url_for('delete_product', pid=p.id) }}" onsubmit="return confirm('Remove {{ p.name }}?')">
+              <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Remove"><i class="fa fa-trash"></i></button>
+            </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--gray-400)">
+        <i class="fa fa-box-open fa-2x" style="margin-bottom:10px"></i><br>No products found.
+        <a href="{{ url_for('add_product') }}" style="color:var(--accent)">Add your first product</a>
+      </td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Stock Modal -->
+<div class="modal-overlay" id="stockModal">
+  <div class="modal">
+    <h3><i class="fa fa-cubes" style="color:var(--accent)"></i> Update Stock</h3>
+    <p id="stockProductName" style="color:var(--gray-600);margin-bottom:16px;font-weight:600"></p>
+    <form id="stockForm" method="POST">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Type</label>
+          <select name="type">
+            <option value="in">Stock In (+)</option>
+            <option value="out">Stock Out (-)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Quantity</label>
+          <input type="number" name="quantity" min="1" value="1" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <input type="text" name="notes" placeholder="e.g. Received from supplier">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeStockModal()">Cancel</button>
+        <button type="submit" class="btn btn-gold"><i class="fa fa-save"></i> Update Stock</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function openStockModal(pid, name, qty) {
+  document.getElementById('stockProductName').textContent = name + ' (Current: ' + qty + ' units)';
+  document.getElementById('stockForm').action = '/inventory/stock/' + pid;
+  document.getElementById('stockModal').classList.add('open');
+}
+function closeStockModal() {
+  document.getElementById('stockModal').classList.remove('open');
+}
+document.getElementById('stockModal').addEventListener('click', function(e) {
+  if (e.target === this) closeStockModal();
+});
+</script>
+{% endblock %}

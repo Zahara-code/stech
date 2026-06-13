@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+{% block title %}Process Return — SwtchTech{% endblock %}
+{% block page_title %}Process Return{% endblock %}
+{% block content %}
+<div style="max-width:800px">
+  <div style="margin-bottom:20px;display:flex;gap:10px">
+    <a href="{{ url_for('view_sale', sid=sale.id) }}" class="btn btn-outline"><i class="fa fa-arrow-left"></i> Back to Invoice</a>
+  </div>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-body" style="padding:16px 20px">
+      <div style="display:flex;gap:40px;align-items:center">
+        <div><div style="font-size:11px;color:var(--gray-400);font-weight:700;margin-bottom:2px">INVOICE</div>
+          <div style="font-size:18px;font-weight:800;color:var(--accent)">{{ sale.invoice_number }}</div></div>
+        <div><div style="font-size:11px;color:var(--gray-400);font-weight:700;margin-bottom:2px">CUSTOMER</div>
+          <div style="font-weight:600">{{ sale.customer_name }}</div></div>
+        <div><div style="font-size:11px;color:var(--gray-400);font-weight:700;margin-bottom:2px">SALE DATE</div>
+          <div style="font-size:13px">{{ sale.created_at.strftime('%d %b %Y %H:%M') }}</div></div>
+        <div><div style="font-size:11px;color:var(--gray-400);font-weight:700;margin-bottom:2px">TOTAL</div>
+          <div style="font-weight:800;color:var(--primary)">KSh {{ "{:,.0f}".format(sale.total_amount) }}</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-header"><h3><i class="fa fa-undo" style="color:var(--warning)"></i> Select Items to Return</h3></div>
+    <div class="card-body">
+      <div id="returnItems">
+        {% for item in sale.items %}
+        {% set returnable = item.quantity - item.returned_qty %}
+        <div style="display:flex;align-items:center;gap:16px;padding:14px 0;border-bottom:1px solid var(--gray-100)">
+          <input type="checkbox" class="return-check" data-id="{{ item.id }}" data-max="{{ returnable }}"
+            id="chk{{ item.id }}" {{ 'disabled' if returnable == 0 }} style="width:18px;height:18px;cursor:pointer">
+          <div style="flex:1">
+            <div style="font-weight:700">{{ item.product.name }}</div>
+            <div style="font-size:12px;color:var(--gray-400)">{{ item.product.sku }} · KSh {{ "{:,.0f}".format(item.unit_price) }} each</div>
+            <div style="font-size:11px;margin-top:2px">
+              Sold: <strong>{{ item.quantity }}</strong>
+              {% if item.returned_qty > 0 %} · Already returned: <strong style="color:var(--warning)">{{ item.returned_qty }}</strong>{% endif %}
+              · Returnable: <strong style="color:{% if returnable > 0 %}var(--success){% else %}var(--danger){% endif %}">{{ returnable }}</strong>
+            </div>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--gray-400);display:block;margin-bottom:4px">QTY TO RETURN</label>
+            <input type="number" class="return-qty" id="qty{{ item.id }}" min="1" max="{{ returnable }}" value="{{ returnable if returnable > 0 else 0 }}"
+              style="width:80px;text-align:center" {{ 'disabled' if returnable == 0 }}>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div style="margin-top:20px">
+        <div class="form-group">
+          <label>Return Reason *</label>
+          <input type="text" id="returnReason" placeholder="e.g. Defective, Customer changed mind, Wrong item...">
+        </div>
+        {% if session.role == 'admin' %}
+        <div style="background:#e8f5e9;border:1.5px solid #c3e6cb;border-radius:10px;padding:14px;margin-top:12px">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:0">
+            <input type="checkbox" id="restockCheck" style="width:18px;height:18px">
+            <div>
+              <div style="font-weight:700;color:#155724;font-size:14px">Restock Returned Items</div>
+              <div style="font-size:12px;color:#28a745">Add returned quantity back to inventory stock (Admin only)</div>
+            </div>
+          </label>
+        </div>
+        {% else %}
+        <div style="background:#fff3cd;border:1.5px solid #ffc107;border-radius:10px;padding:12px;margin-top:12px;font-size:13px;color:#856404">
+          <i class="fa fa-lock"></i> <strong>Note:</strong> Only admins can restock returned items. Contact your admin if this return needs to go back into inventory.
+        </div>
+        {% endif %}
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+        <a href="{{ url_for('view_sale', sid=sale.id) }}" class="btn btn-outline">Cancel</a>
+        <button onclick="submitReturn()" class="btn btn-warning"><i class="fa fa-undo"></i> Process Return</button>
+      </div>
+    </div>
+  </div>
+
+  {% if returns %}
+  <div class="card">
+    <div class="card-header"><h3><i class="fa fa-history" style="color:var(--gray-400)"></i> Previous Returns for this Invoice</h3></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Product</th><th>Qty</th><th>Restocked</th><th>Reason</th><th>Processed By</th><th>Date</th></tr></thead>
+        <tbody>
+        {% for r in returns %}
+        <tr>
+          <td style="font-weight:600">{{ r.product.name }}</td>
+          <td>{{ r.quantity }}</td>
+          <td>{% if r.restock %}<span class="badge badge-success">Yes</span>{% else %}<span class="badge badge-warning">No</span>{% endif %}</td>
+          <td style="font-size:13px;color:var(--gray-600)">{{ r.reason or '—' }}</td>
+          <td style="font-size:13px">{{ r.processor.full_name if r.processor else '—' }}</td>
+          <td style="font-size:12px;color:var(--gray-400)">{{ r.created_at.strftime('%d %b %Y %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function submitReturn() {
+  const checks = document.querySelectorAll('.return-check:checked:not(:disabled)');
+  if (!checks.length) { alert('Please select at least one item to return.'); return; }
+  const reason = document.getElementById('returnReason').value.trim();
+  if (!reason) { alert('Please provide a return reason.'); return; }
+  const items = [];
+  checks.forEach(c => {
+    const qty = parseInt(document.getElementById('qty' + c.dataset.id).value);
+    if (qty > 0) items.push({ sale_item_id: parseInt(c.dataset.id), quantity: qty });
+  });
+  const restock = document.getElementById('restockCheck') ? document.getElementById('restockCheck').checked : false;
+  const res = await fetch(window.location.href, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items, reason, restock })
+  });
+  const data = await res.json();
+  if (data.success) {
+    alert('Return processed successfully!');
+    window.location.href = '{{ url_for("view_sale", sid=sale.id) }}';
+  } else {
+    alert('Error: ' + data.error);
+  }
+}
+</script>
+{% endblock %}

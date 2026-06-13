@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Products{% endblock %}
+{% block page_title %}Products & Inventory{% endblock %}
+
+{% block content %}
+<form class="search-bar" method="GET">
+  <div class="search-input-wrap">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Search by name, SKU, brand…">
+  </div>
+  <select name="category" class="form-control" style="width:auto;min-width:140px">
+    <option value="">All Categories</option>
+    {% for cat in categories %}
+    <option value="{{ cat.id }}" {% if selected_category == cat.id|string %}selected{% endif %}>{{ cat.name }}</option>
+    {% endfor %}
+  </select>
+  <select name="stock" class="form-control" style="width:auto;min-width:140px">
+    <option value="">All Stock</option>
+    <option value="low" {% if stock_filter == 'low' %}selected{% endif %}>Low Stock</option>
+    <option value="out" {% if stock_filter == 'out' %}selected{% endif %}>Out of Stock</option>
+  </select>
+  <button type="submit" class="btn btn-dark">Filter</button>
+  {% if current_user.role == 'admin' %}
+  <a href="{{ url_for('add_product') }}" class="btn btn-primary" style="margin-left:auto">
+    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Add Product
+  </a>
+  {% endif %}
+</form>
+
+<div class="table-wrapper">
+  <table>
+    <thead>
+      <tr>
+        <th>SKU</th>
+        <th>Product Name</th>
+        <th>Category</th>
+        <th>Brand</th>
+        <th>Cost Price</th>
+        <th>Selling Price</th>
+        <th>Margin</th>
+        <th>Stock</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in products %}
+      <tr>
+        <td><code style="font-size:12px;background:var(--gray-100);padding:2px 6px;border-radius:4px">{{ p.sku }}</code></td>
+        <td>
+          <div style="font-weight:500">{{ p.name }}</div>
+          {% if p.model %}<div style="font-size:11px;color:var(--gray-600)">{{ p.model }}</div>{% endif %}
+        </td>
+        <td>{{ p.category.name if p.category else '—' }}</td>
+        <td>{{ p.brand or '—' }}</td>
+        <td>R {{ "%.2f"|format(p.cost_price) }}</td>
+        <td><strong>R {{ "%.2f"|format(p.selling_price) }}</strong></td>
+        <td>
+          <span class="badge {% if p.profit_margin >= 20 %}badge-success{% elif p.profit_margin >= 10 %}badge-warning{% else %}badge-danger{% endif %}">
+            {{ p.profit_margin }}%
+          </span>
+        </td>
+        <td>
+          <strong style="{% if p.quantity == 0 %}color:var(--danger){% elif p.quantity <= p.low_stock_threshold %}color:var(--warning){% else %}color:var(--success){% endif %}">
+            {{ p.quantity }}
+          </strong>
+        </td>
+        <td>
+          {% if p.stock_status == 'out_of_stock' %}
+            <span class="badge badge-danger">Out of Stock</span>
+          {% elif p.stock_status == 'low_stock' %}
+            <span class="badge badge-warning">Low Stock</span>
+          {% else %}
+            <span class="badge badge-success">In Stock</span>
+          {% endif %}
+        </td>
+        <td>
+          <div style="display:flex;gap:6px">
+            {% if current_user.role == 'admin' %}
+            <a href="{{ url_for('adjust_stock', id=p.id) }}" class="btn-icon" title="Manage Stock">
+              <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+            </a>
+            <a href="{{ url_for('edit_product', id=p.id) }}" class="btn-icon" title="Edit">
+              <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </a>
+            <form method="POST" action="{{ url_for('delete_product', id=p.id) }}" style="display:inline" onsubmit="return confirm('Remove this product?')">
+              <button type="submit" class="btn-icon danger" title="Remove">
+                <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="10">
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+            <h3>No products found</h3>
+            <p>{% if current_user.role == 'admin' %}<a href="{{ url_for('add_product') }}" class="btn btn-primary btn-sm" style="margin-top:10px">Add your first product</a>{% endif %}</p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

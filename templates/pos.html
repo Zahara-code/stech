@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+{% block title %}Point of Sale{% endblock %}
+{% block page_title %}Point of Sale{% endblock %}
+
+{% block content %}
+<div class="pos-layout">
+  <!-- LEFT: Product Search + Grid -->
+  <div class="pos-left">
+    <div class="pos-search-area">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <div class="search-input-wrap" style="flex:1;min-width:200px">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="productSearch" class="form-control" placeholder="Search by name or SKU…" autocomplete="off">
+        </div>
+        <select id="categoryFilter" class="form-control" style="width:auto;min-width:140px">
+          <option value="">All Categories</option>
+          {% for cat in categories %}
+          <option value="{{ cat.id }}">{{ cat.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="pos-product-grid" id="productGrid">
+      <div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--gray-400)">
+        Search or browse products above
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Cart -->
+  <div class="pos-right">
+    <div class="cart-header">
+      <span class="cart-title">🛒 Current Sale</span>
+      <button class="btn btn-outline btn-sm" onclick="clearCart()">Clear</button>
+    </div>
+
+    <div class="cart-items" id="cartItems">
+      <div class="empty-state" style="padding:32px">
+        <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 001.92-1.48L23 6H6"/></svg>
+        <p>Cart is empty</p>
+      </div>
+    </div>
+
+    <div class="cart-footer">
+      <div class="cart-totals">
+        <div class="cart-total-row"><span>Subtotal</span><span id="subtotal">R 0.00</span></div>
+        <div class="cart-total-row">
+          <span>Discount %</span>
+          <input type="number" id="discountInput" class="form-control" style="width:70px;padding:4px 8px;font-size:12px;text-align:right" value="0" min="0" max="100" oninput="updateTotals()">
+        </div>
+        <div class="cart-total-row">
+          <span>VAT %</span>
+          <input type="number" id="taxInput" class="form-control" style="width:70px;padding:4px 8px;font-size:12px;text-align:right" value="0" min="0" max="100" oninput="updateTotals()">
+        </div>
+        <div class="cart-total-row grand"><span>TOTAL</span><span id="grandTotal">R 0.00</span></div>
+      </div>
+
+      <div class="cart-options">
+        <div>
+          <label style="font-size:11px;color:var(--gray-600);display:block;margin-bottom:4px">Customer</label>
+          <select id="customerSelect" class="form-control" style="font-size:12px;padding:7px 10px">
+            <option value="">Walk-in</option>
+            {% for c in customers %}
+            <option value="{{ c.id }}">{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--gray-600);display:block;margin-bottom:4px">Payment</label>
+          <select id="paymentMethod" class="form-control" style="font-size:12px;padding:7px 10px">
+            <option value="cash">Cash</option>
+            <option value="card">Card</option>
+            <option value="eft">EFT</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="checkout-btn" id="checkoutBtn" onclick="completeSale()" disabled>
+        Complete Sale
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Receipt Modal -->
+<div class="modal-overlay" id="receiptModal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <span class="modal-title">✅ Sale Complete</span>
+      <button class="modal-close" onclick="closeReceipt()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="receipt" id="receiptContent"></div>
+    </div>
+    <div class="modal-footer no-print">
+      <button class="btn btn-outline" onclick="window.print()">🖨 Print Receipt</button>
+      <button class="btn btn-primary" onclick="closeReceipt()">New Sale</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let cart = [];
+let searchTimeout;
+
+const productSearch = document.getElementById('productSearch');
+const categoryFilter = document.getElementById('categoryFilter');
+
+productSearch.addEventListener('input', () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(searchProducts, 300);
+});
+categoryFilter.addEventListener('change', searchProducts);
+
+function searchProducts() {
+  const q = productSearch.value;
+  const catId = categoryFilter.value;
+  if (!q && !catId) {
+    document.getElementById('productGrid').innerHTML = '<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--gray-400)">Search or browse products above</div>';
+    return;
+  }
+  fetch(`/api/products/search?q=${encodeURIComponent(q)}&cat=${catId}`)
+    .then(r => r.json())
+    .then(products => renderProducts(products));
+}
+
+function renderProducts(products) {
+  const grid = document.getElementById('productGrid');
+  if (!products.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--gray-400)">No products found</div>';
+    return;
+  }
+  grid.innerHTML = products.map(p => `
+    <div class="pos-product-card" onclick="addToCart(${p.id}, '${escHtml(p.name)}', ${p.price}, ${p.quantity})">
+      <div class="prod-name">${escHtml(p.name)}</div>
+      <div class="prod-brand">${escHtml(p.brand)}</div>
+      <div class="prod-price">R ${p.price.toFixed(2)}</div>
+      <div class="prod-stock">Stock: ${p.quantity}</div>
+    </div>
+  `).join('');
+}
+
+function escHtml(s) {
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function addToCart(id, name, price, stock) {
+  const existing = cart.find(i => i.id === id);
+  if (existing) {
+    if (existing.qty >= stock) { alert('No more stock available'); return; }
+    existing.qty++;
+  } else {
+    cart.push({ id, name, price, qty: 1, stock, discount: 0 });
+  }
+  renderCart();
+}
+
+function updateQty(id, delta) {
+  const item = cart.find(i => i.id === id);
+  if (!item) return;
+  item.qty += delta;
+  if (item.qty <= 0) cart = cart.filter(i => i.id !== id);
+  renderCart();
+}
+
+function removeItem(id) { cart = cart.filter(i => i.id !== id); renderCart(); }
+function clearCart() { cart = []; renderCart(); }
+
+function renderCart() {
+  const container = document.getElementById('cartItems');
+  if (!cart.length) {
+    container.innerHTML = '<div class="empty-state" style="padding:32px"><svg viewBox="0 0 24 24" style="width:36px;height:36px;stroke:var(--gray-400);fill:none;stroke-width:2;display:block;margin:0 auto 8px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 001.92-1.48L23 6H6"/></svg><p>Cart is empty</p></div>';
+    document.getElementById('checkoutBtn').disabled = true;
+    updateTotals();
+    return;
+  }
+  container.innerHTML = cart.map(item => {
+    const total = item.qty * item.price;
+    return `<div class="cart-item">
+      <div class="cart-item-info">
+        <div class="cart-item-name">${escHtml(item.name)}</div>
+        <div class="cart-item-price">R ${item.price.toFixed(2)} each</div>
+      </div>
+      <div class="cart-qty-controls">
+        <button class="qty-btn" onclick="updateQty(${item.id}, -1)">−</button>
+        <span class="cart-qty">${item.qty}</span>
+        <button class="qty-btn" onclick="updateQty(${item.id}, 1)">+</button>
+      </div>
+      <span class="cart-item-total">R ${total.toFixed(2)}</span>
+      <button class="remove-item" onclick="removeItem(${item.id})">✕</button>
+    </div>`;
+  }).join('');
+  document.getElementById('checkoutBtn').disabled = false;
+  updateTotals();
+}
+
+function updateTotals() {
+  const subtotal = cart.reduce((s, i) => s + i.qty * i.price, 0);
+  const discount = parseFloat(document.getElementById('discountInput').value) || 0;
+  const taxRate = parseFloat(document.getElementById('taxInput').value) || 0;
+  const afterDiscount = subtotal * (1 - discount / 100);
+  const tax = afterDiscount * taxRate / 100;
+  const total = afterDiscount + tax;
+  document.getElementById('subtotal').textContent = 'R ' + subtotal.toFixed(2);
+  document.getElementById('grandTotal').textContent = 'R ' + total.toFixed(2);
+}
+
+function completeSale() {
+  if (!cart.length) return;
+  const discount = parseFloat(document.getElementById('discountInput').value) || 0;
+  const taxRate = parseFloat(document.getElementById('taxInput').value) || 0;
+  const customerId = document.getElementById('customerSelect').value;
+  const paymentMethod = document.getElementById('paymentMethod').value;
+
+  const payload = {
+    items: cart.map(i => ({ product_id: i.id, quantity: i.qty, unit_price: i.price, discount: 0 })),
+    discount, tax_rate: taxRate,
+    customer_id: customerId || null,
+    payment_method: paymentMethod
+  };
+
+  fetch('/sales/new', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.error) { alert(data.error); return; }
+    showReceipt(data);
+    cart = [];
+    renderCart();
+  })
+  .catch(() => alert('Error processing sale. Please try again.'));
+}
+
+function showReceipt(data) {
+  const subtotal = parseFloat(document.getElementById('subtotal').textContent.replace('R ',''));
+  const total = parseFloat(document.getElementById('grandTotal').textContent.replace('R ',''));
+  const now = new Date().toLocaleString();
+  document.getElementById('receiptContent').innerHTML = `
+    <div class="receipt-header">
+      <strong>SWTCHTECH</strong><br>
+      Master Your Digital Universe<br>
+      <small>${now}</small>
+    </div>
+    <hr class="receipt-divider">
+    <div class="receipt-row"><span>Invoice:</span><span>${data.invoice_number}</span></div>
+    <hr class="receipt-divider">
+    ${cart.map ? '' : ''}
+    <hr class="receipt-divider">
+    <div class="receipt-row receipt-total"><span>TOTAL:</span><span>R ${total.toFixed(2)}</span></div>
+    <hr class="receipt-divider">
+    <div style="text-align:center;margin-top:10px;font-size:11px">Thank you for your purchase!<br>SwtchTech — Master Your Digital Universe</div>
+  `;
+  document.getElementById('receiptModal').classList.add('open');
+}
+
+function closeReceipt() {
+  document.getElementById('receiptModal').classList.remove('open');
+  document.getElementById('discountInput').value = 0;
+  document.getElementById('taxInput').value = 0;
+  document.getElementById('customerSelect').value = '';
+  productSearch.value = '';
+  document.getElementById('productGrid').innerHTML = '<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--gray-400)">Search or browse products above</div>';
+}
+
+// Load all products on start
+fetch('/api/products/search?q=')
+  .then(r => r.json())
+  .then(products => { if (products.length) renderProducts(products); });
+</script>
+{% endblock %}

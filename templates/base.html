@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}SwtchTech POS{% endblock %}</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  :root {
+    --primary: #1a1a2e;
+    --accent: #d4a843;
+    --accent-light: #f0c96b;
+    --white: #ffffff;
+    --offwhite: #f8f9fc;
+    --gray-100: #f1f3f7;
+    --gray-200: #e4e8ef;
+    --gray-400: #9aa0ac;
+    --gray-600: #5a6070;
+    --gray-800: #2d3142;
+    --success: #28a745;
+    --danger: #dc3545;
+    --warning: #ffc107;
+    --info: #17a2b8;
+    --sidebar-w: 240px;
+    --topbar-h: 60px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--offwhite); color: var(--gray-800); }
+  a { text-decoration: none; color: inherit; }
+
+  /* SIDEBAR */
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0;
+    width: var(--sidebar-w);
+    background: var(--primary);
+    display: flex; flex-direction: column;
+    z-index: 100;
+    box-shadow: 2px 0 12px rgba(0,0,0,0.15);
+  }
+  .sidebar-logo {
+    padding: 20px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sidebar-logo .logo-mark {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 18px; color: var(--primary);
+    flex-shrink: 0;
+  }
+  .sidebar-logo .brand { color: var(--white); }
+  .sidebar-logo .brand span { display: block; font-size: 13px; font-weight: 700; letter-spacing: 1.5px; }
+  .sidebar-logo .brand small { color: var(--accent); font-size: 9px; letter-spacing: 1px; text-transform: uppercase; }
+  .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+  .nav-section { padding: 8px 16px 4px; font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--gray-400); }
+  .nav-link {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px; margin: 2px 8px;
+    border-radius: 8px; color: rgba(255,255,255,0.7);
+    font-size: 14px; font-weight: 500;
+    transition: all 0.15s;
+  }
+  .nav-link:hover { background: rgba(255,255,255,0.08); color: var(--white); }
+  .nav-link.active { background: var(--accent); color: var(--primary); font-weight: 700; }
+  .nav-link i { width: 18px; text-align: center; font-size: 15px; }
+  .sidebar-user {
+    padding: 14px 16px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .user-avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--accent); color: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px; flex-shrink: 0;
+  }
+  .user-info { flex: 1; min-width: 0; }
+  .user-info .name { color: var(--white); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-info .role { color: var(--accent); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+  .logout-btn { color: rgba(255,255,255,0.5); font-size: 16px; padding: 4px; border-radius: 6px; transition: color 0.15s; }
+  .logout-btn:hover { color: var(--danger); }
+
+  /* MAIN */
+  .main-wrap { margin-left: var(--sidebar-w); min-height: 100vh; display: flex; flex-direction: column; }
+  .topbar {
+    height: var(--topbar-h); background: var(--white);
+    border-bottom: 1px solid var(--gray-200);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; position: sticky; top: 0; z-index: 50;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .topbar-title { font-size: 18px; font-weight: 700; color: var(--gray-800); }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .badge-pill {
+    padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    background: var(--accent); color: var(--primary);
+  }
+  .content { flex: 1; padding: 24px; }
+
+  /* CARDS */
+  .card {
+    background: var(--white); border-radius: var(--radius);
+    box-shadow: var(--shadow); border: 1px solid var(--gray-200);
+  }
+  .card-header {
+    padding: 16px 20px; border-bottom: 1px solid var(--gray-200);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card-header h3 { font-size: 15px; font-weight: 700; color: var(--gray-800); }
+  .card-body { padding: 20px; }
+
+  /* STAT CARDS */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--white); border-radius: var(--radius);
+    padding: 20px; border: 1px solid var(--gray-200);
+    box-shadow: var(--shadow); display: flex; align-items: center; gap: 16px;
+  }
+  .stat-icon {
+    width: 48px; height: 48px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .stat-icon.gold { background: #fff8e6; color: var(--accent); }
+  .stat-icon.blue { background: #e6f3ff; color: #2563eb; }
+  .stat-icon.green { background: #e6f9ee; color: var(--success); }
+  .stat-icon.red { background: #fde8ea; color: var(--danger); }
+  .stat-icon.purple { background: #f0e6ff; color: #7c3aed; }
+  .stat-label { font-size: 12px; color: var(--gray-400); font-weight: 500; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-value { font-size: 24px; font-weight: 800; color: var(--gray-800); }
+  .stat-sub { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+
+  /* TABLES */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { padding: 10px 14px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--gray-400); font-weight: 700; border-bottom: 2px solid var(--gray-200); }
+  td { padding: 12px 14px; border-bottom: 1px solid var(--gray-100); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--offwhite); }
+
+  /* BADGES */
+  .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; display: inline-block; }
+  .badge-success { background: #d4edda; color: #155724; }
+  .badge-danger { background: #f8d7da; color: #721c24; }
+  .badge-warning { background: #fff3cd; color: #856404; }
+  .badge-info { background: #cce5ff; color: #004085; }
+  .badge-gold { background: #fff8e6; color: #92650a; }
+  .badge-admin { background: var(--primary); color: var(--accent); }
+
+  /* BUTTONS */
+  .btn {
+    padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+    transition: all 0.15s; text-decoration: none;
+  }
+  .btn-primary { background: var(--primary); color: var(--white); }
+  .btn-primary:hover { background: #2d2d4e; }
+  .btn-gold { background: var(--accent); color: var(--primary); }
+  .btn-gold:hover { background: var(--accent-light); }
+  .btn-success { background: var(--success); color: var(--white); }
+  .btn-danger { background: var(--danger); color: var(--white); }
+  .btn-outline { background: transparent; border: 1.5px solid var(--gray-200); color: var(--gray-600); }
+  .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-icon { padding: 6px 8px; }
+
+  /* FORMS */
+  .form-group { margin-bottom: 16px; }
+  label { display: block; font-size: 12px; font-weight: 700; color: var(--gray-600); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  input, select, textarea {
+    width: 100%; padding: 10px 12px; border: 1.5px solid var(--gray-200);
+    border-radius: 8px; font-size: 14px; color: var(--gray-800);
+    background: var(--white); transition: border 0.15s;
+    font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 80px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  /* ALERTS */
+  .alerts { position: fixed; top: 70px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+  .alert {
+    padding: 12px 18px; border-radius: 10px; font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; gap: 10px; min-width: 280px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12); animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  .alert-success { background: #d4edda; color: #155724; border-left: 4px solid var(--success); }
+  .alert-error { background: #f8d7da; color: #721c24; border-left: 4px solid var(--danger); }
+  .alert-info { background: #cce5ff; color: #004085; border-left: 4px solid var(--info); }
+
+  /* FILTERS */
+  .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .filters input, .filters select { width: auto; min-width: 180px; padding: 8px 12px; }
+
+  /* STOCK BADGES */
+  .stock-ok { color: var(--success); font-weight: 700; }
+  .stock-low { color: var(--warning); font-weight: 700; }
+  .stock-out { color: var(--danger); font-weight: 700; }
+
+  /* MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: none; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--white); border-radius: 14px; padding: 28px; width: 90%; max-width: 480px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+  .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 18px; }
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .sidebar { width: 60px; }
+    .sidebar-logo .brand, .nav-link span, .user-info { display: none; }
+    .nav-link { padding: 12px; justify-content: center; }
+    .main-wrap { margin-left: 60px; }
+    .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 480px) {
+    .stats-grid { grid-template-columns: 1fr; }
+  }
+  /* PRINT */
+  @media print {
+    .sidebar, .topbar, .btn, .filters { display: none !important; }
+    .main-wrap { margin-left: 0; }
+    .content { padding: 0; }
+  }
+</style>
+</head>
+<body>
+
+{% if session.user_id %}
+<div class="alerts" id="alerts">
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% for cat, msg in messages %}
+<div class="alert alert-{{ 'error' if cat == 'error' else cat }}" onclick="this.remove()">
+  <i class="fa {{ 'fa-check-circle' if cat == 'success' else 'fa-exclamation-circle' if cat == 'error' else 'fa-info-circle' }}"></i>
+  {{ msg }}
+</div>
+{% endfor %}
+{% endwith %}
+</div>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">S</div>
+    <div class="brand">
+      <span>SWTCH TECH</span>
+      <small>Master Your Digital Universe</small>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Main</div>
+    <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+      <i class="fa fa-th-large"></i><span>Dashboard</span>
+    </a>
+    <a href="{{ url_for('new_sale') }}" class="nav-link {% if request.endpoint == 'new_sale' %}active{% endif %}">
+      <i class="fa fa-cash-register"></i><span>New Sale</span>
+    </a>
+    <a href="{{ url_for('sales') }}" class="nav-link {% if request.endpoint == 'sales' %}active{% endif %}">
+      <i class="fa fa-receipt"></i><span>Sales History</span>
+    </a>
+    <div class="nav-section">Inventory</div>
+    <a href="{{ url_for('inventory') }}" class="nav-link {% if request.endpoint in ['inventory','add_product','edit_product'] %}active{% endif %}">
+      <i class="fa fa-boxes"></i><span>Products</span>
+    </a>
+    <a href="{{ url_for('stock_history') }}" class="nav-link {% if request.endpoint == 'stock_history' %}active{% endif %}">
+      <i class="fa fa-history"></i><span>Stock History</span>
+    </a>
+    {% if session.role == 'admin' %}
+    <div class="nav-section">Admin</div>
+    <a href="{{ url_for('deleted_products') }}" class="nav-link {% if request.endpoint == 'deleted_products' %}active{% endif %}">
+      <i class="fa fa-trash"></i><span>Deleted Products</span>
+    </a>
+    <a href="{{ url_for('categories') }}" class="nav-link {% if request.endpoint == 'categories' %}active{% endif %}">
+      <i class="fa fa-tags"></i><span>Categories</span>
+    </a>
+    <a href="{{ url_for('users') }}" class="nav-link {% if request.endpoint in ['users','add_user','edit_user'] %}active{% endif %}">
+      <i class="fa fa-users"></i><span>Staff Accounts</span>
+    </a>
+    <a href="{{ url_for('reports') }}" class="nav-link {% if request.endpoint == 'reports' %}active{% endif %}">
+      <i class="fa fa-chart-bar"></i><span>Reports</span>
+    </a>
+    {% endif %}
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar">{{ session.full_name[0] | upper }}</div>
+    <div class="user-info">
+      <div class="name">{{ session.full_name }}</div>
+      <div class="role">{{ session.role }}</div>
+    </div>
+    <a href="{{ url_for('logout') }}" class="logout-btn" title="Logout"><i class="fa fa-sign-out-alt"></i></a>
+  </div>
+</aside>
+
+<div class="main-wrap">
+  <div class="topbar">
+    <div class="topbar-title">{% block page_title %}Dashboard{% endblock %}</div>
+    <div class="topbar-right">
+      <span class="badge-pill">{% if session.role == 'admin' %}<i class="fa fa-shield-alt"></i> Admin{% else %}<i class="fa fa-user"></i> Sales{% endif %}</span>
+    </div>
+  </div>
+  <div class="content">
+    {% block content %}{% endblock %}
+  </div>
+</div>
+{% else %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="alerts" id="alerts">
+{% for cat, msg in messages %}
+<div class="alert alert-{{ 'error' if cat == 'error' else cat }}" onclick="this.remove()">
+  <i class="fa {{ 'fa-check-circle' if cat == 'success' else 'fa-exclamation-circle' if cat == 'error' else 'fa-info-circle' }}"></i>
+  {{ msg }}
+</div>
+{% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+{% endif %}
+
+<script>
+// Auto-dismiss alerts
+setTimeout(() => {
+  document.querySelectorAll('.alert').forEach(a => {
+    a.style.transition = 'opacity 0.5s';
+    a.style.opacity = '0';
+    setTimeout(() => a.remove(), 500);
+  });
+}, 4000);
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}{{ sale.invoice_number }} — SwtchTech{% endblock %}
+{% block page_title %}Invoice{% endblock %}
+{% block content %}
+<div style="max-width:700px">
+  <div style="display:flex;gap:10px;margin-bottom:20px">
+    <a href="{{ url_for('sales') }}" class="btn btn-outline"><i class="fa fa-arrow-left"></i> Back</a>
+    <button onclick="window.print()" class="btn btn-primary"><i class="fa fa-print"></i> Print</button>
+    {% if sale.status == 'completed' %}
+    <a href="{{ url_for('process_return', sid=sale.id) }}" class="btn btn-warning"><i class="fa fa-undo"></i> Process Return</a>
+    {% endif %}
+    {% if sale.status == 'returned' %}
+    <span class="badge badge-danger" style="padding:8px 16px;font-size:13px"><i class="fa fa-undo"></i> Fully Returned</span>
+    {% endif %}
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:20px;border-bottom:2px solid var(--gray-200)">
+        <div>
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gray-400)">Invoice</div>
+          <div style="font-size:24px;font-weight:900;color:var(--accent)">{{ sale.invoice_number }}</div>
+          <div style="font-size:13px;color:var(--gray-600);margin-top:4px">{{ sale.created_at.strftime('%A, %d %B %Y at %H:%M') }}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;font-weight:800;letter-spacing:2px;color:var(--primary)">SWTCH TECH</div>
+          <div style="font-size:10px;color:var(--gray-400)">Master Your Digital Universe</div>
+          <div style="margin-top:8px">
+            {% if sale.payment_method == 'mpesa' %}<span class="badge badge-success">M-Pesa</span>
+            {% elif sale.payment_method == 'card' %}<span class="badge badge-info">Card</span>
+            {% elif sale.payment_method == 'bank' %}<span class="badge badge-gold">Bank Transfer</span>
+            {% else %}<span class="badge badge-warning">Cash</span>{% endif %}
+            {% if sale.status == 'returned' %}<span class="badge badge-danger" style="margin-left:4px">Returned</span>{% endif %}
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">
+        <div><div style="font-size:11px;text-transform:uppercase;color:var(--gray-400);font-weight:700;margin-bottom:6px">Customer</div>
+          <div style="font-weight:700">{{ sale.customer_name }}</div>
+          {% if sale.customer_phone %}<div style="font-size:13px;color:var(--gray-600)">{{ sale.customer_phone }}</div>{% endif %}
+        </div>
+        <div><div style="font-size:11px;text-transform:uppercase;color:var(--gray-400);font-weight:700;margin-bottom:6px">Served By</div>
+          <div style="font-weight:700">{{ sale.user.full_name }}</div>
+          <div style="font-size:12px;color:var(--gray-400)">{{ sale.user.role|title }}</div>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Product</th><th style="text-align:center">Qty</th><th style="text-align:center">Returned</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Subtotal</th></tr></thead>
+        <tbody>
+        {% for item in sale.items %}
+        <tr>
+          <td>
+            <div style="font-weight:600">{{ item.product.name }}</div>
+            <div style="font-size:11px;color:var(--gray-400)">{{ item.product.sku }}</div>
+          </td>
+          <td style="text-align:center;font-weight:700">{{ item.quantity }}</td>
+          <td style="text-align:center">
+            {% if item.returned_qty > 0 %}
+            <span class="badge badge-warning">{{ item.returned_qty }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td style="text-align:right">KSh {{ "{:,.0f}".format(item.unit_price) }}</td>
+          <td style="text-align:right;font-weight:700">KSh {{ "{:,.0f}".format(item.subtotal) }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <div style="display:flex;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:2px solid var(--gray-200)">
+        <div style="text-align:right">
+          <div style="font-size:14px;color:var(--gray-600);margin-bottom:4px">Total Amount</div>
+          <div style="font-size:32px;font-weight:900;color:var(--primary)">KSh {{ "{:,.0f}".format(sale.total_amount) }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

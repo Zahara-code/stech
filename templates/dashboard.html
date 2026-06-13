@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon gold"><i class="fa fa-dollar-sign"></i></div>
+    <div>
+      <div class="stat-label">Today's Revenue</div>
+      <div class="stat-value">KSh {{ "{:,.0f}".format(today_revenue) }}</div>
+      <div class="stat-sub">{{ today_count }} sale{{ 's' if today_count != 1 }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon blue"><i class="fa fa-chart-line"></i></div>
+    <div>
+      <div class="stat-label">Total Revenue</div>
+      <div class="stat-value">KSh {{ "{:,.0f}".format(total_revenue) }}</div>
+      <div class="stat-sub">{{ total_sales }} total sales</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green"><i class="fa fa-boxes"></i></div>
+    <div>
+      <div class="stat-label">Products</div>
+      <div class="stat-value">{{ total_products }}</div>
+      <div class="stat-sub">Active products</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon red"><i class="fa fa-exclamation-triangle"></i></div>
+    <div>
+      <div class="stat-label">Stock Alerts</div>
+      <div class="stat-value">{{ low_stock + out_of_stock }}</div>
+      <div class="stat-sub">{{ low_stock }} low · {{ out_of_stock }} out</div>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fa fa-receipt" style="color:var(--accent)"></i> Recent Sales</h3>
+      <a href="{{ url_for('new_sale') }}" class="btn btn-gold btn-sm"><i class="fa fa-plus"></i> New Sale</a>
+    </div>
+    <div class="card-body" style="padding:0">
+      {% if recent_sales %}
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Invoice</th><th>Customer</th><th>Amount</th><th>Time</th></tr></thead>
+          <tbody>
+          {% for s in recent_sales %}
+          <tr>
+            <td><a href="{{ url_for('view_sale', sid=s.id) }}" style="color:var(--accent);font-weight:600">{{ s.invoice_number }}</a></td>
+            <td>{{ s.customer_name }}</td>
+            <td><strong>KSh {{ "{:,.0f}".format(s.total_amount) }}</strong></td>
+            <td style="color:var(--gray-400);font-size:12px">{{ s.created_at.strftime('%d %b %H:%M') }}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div style="padding:30px;text-align:center;color:var(--gray-400)"><i class="fa fa-receipt fa-2x" style="margin-bottom:8px"></i><br>No sales yet today</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fa fa-exclamation-triangle" style="color:var(--warning)"></i> Low Stock Alerts</h3>
+      <a href="{{ url_for('inventory') }}?status=low" class="btn btn-outline btn-sm">View All</a>
+    </div>
+    <div class="card-body" style="padding:0">
+      {% if low_stock_products %}
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Product</th><th>Qty</th><th>Status</th></tr></thead>
+          <tbody>
+          {% for p in low_stock_products %}
+          <tr>
+            <td>
+              <div style="font-weight:600;font-size:13px">{{ p.name[:30] }}{{ '...' if p.name|length > 30 }}</div>
+              <div style="font-size:11px;color:var(--gray-400)">{{ p.sku }}</div>
+            </td>
+            <td><strong>{{ p.quantity }}</strong></td>
+            <td>
+              {% if p.quantity == 0 %}
+              <span class="badge badge-danger">Out of Stock</span>
+              {% else %}
+              <span class="badge badge-warning">Low Stock</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div style="padding:30px;text-align:center;color:var(--gray-400)"><i class="fa fa-check-circle fa-2x" style="color:var(--success);margin-bottom:8px"></i><br>All stock levels are good!</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

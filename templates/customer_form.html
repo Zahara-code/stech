@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit Customer' if customer else 'Add Customer' }}{% endblock %}
+{% block page_title %}{{ 'Edit Customer' if customer else 'Add Customer' }}{% endblock %}
+
+{% block content %}
+<div style="max-width:600px">
+  <div class="page-actions">
+    <a href="{{ url_for('customers') }}" class="btn btn-outline">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      Back to Customers
+    </a>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">{{ 'Edit Customer' if customer else 'New Customer' }}</span></div>
+    <div class="card-body">
+      <form method="POST">
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input type="text" name="name" class="form-control" required value="{{ customer.name if customer else '' }}" placeholder="Customer name">
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Phone</label>
+            <input type="text" name="phone" class="form-control" value="{{ customer.phone if customer else '' }}" placeholder="+27 …">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control" value="{{ customer.email if customer else '' }}" placeholder="email@example.com">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Address</label>
+          <textarea name="address" class="form-control" rows="3" placeholder="Street, City, Province">{{ customer.address if customer else '' }}</textarea>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <a href="{{ url_for('customers') }}" class="btn btn-outline">Cancel</a>
+          <button type="submit" class="btn btn-primary">{{ 'Save Changes' if customer else 'Add Customer' }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

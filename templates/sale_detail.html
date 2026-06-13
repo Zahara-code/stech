@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Invoice {{ sale.invoice_number }}{% endblock %}
+{% block page_title %}Invoice {{ sale.invoice_number }}{% endblock %}
+
+{% block content %}
+<div style="max-width:800px">
+  <div class="page-actions no-print">
+    <a href="{{ url_for('sales') }}" class="btn btn-outline">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      Back to Sales
+    </a>
+    <button onclick="window.print()" class="btn btn-dark">
+      <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Print Invoice
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="card-body" style="padding:32px">
+      <!-- Header -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px">
+        <div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;letter-spacing:2px">SWTCH<span style="color:var(--gold)">TECH</span></div>
+          <div style="font-size:11px;color:var(--gray-600);margin-top:2px">Master Your Digital Universe</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:20px;font-weight:700;font-family:'Space Grotesk',sans-serif">INVOICE</div>
+          <div style="font-size:14px;color:var(--gold-dim);font-weight:600;margin-top:4px">{{ sale.invoice_number }}</div>
+          <div style="font-size:12px;color:var(--gray-600);margin-top:4px">{{ sale.created_at.strftime('%d %B %Y, %H:%M') }}</div>
+        </div>
+      </div>
+
+      <!-- Sale Details -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:28px">
+        <div>
+          <div style="font-size:11px;color:var(--gray-600);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Billed To</div>
+          {% if sale.customer %}
+          <div style="font-weight:600">{{ sale.customer.name }}</div>
+          {% if sale.customer.phone %}<div style="font-size:13px;color:var(--gray-600)">{{ sale.customer.phone }}</div>{% endif %}
+          {% if sale.customer.email %}<div style="font-size:13px;color:var(--gray-600)">{{ sale.customer.email }}</div>{% endif %}
+          {% else %}
+          <div style="color:var(--gray-600)">Walk-in Customer</div>
+          {% endif %}
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--gray-600);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Served By</div>
+          <div style="font-weight:600">{{ sale.seller.full_name or sale.seller.username }}</div>
+          <div style="font-size:13px;color:var(--gray-600)">Payment: <span class="badge badge-info">{{ sale.payment_method | capitalize }}</span></div>
+        </div>
+      </div>
+
+      <!-- Items -->
+      <div class="table-wrapper" style="margin-bottom:24px">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Product</th>
+              <th>SKU</th>
+              <th style="text-align:right">Unit Price</th>
+              <th style="text-align:center">Qty</th>
+              <th style="text-align:right">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in sale.items %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td><strong>{{ item.product.name }}</strong>{% if item.product.brand %}<br><small style="color:var(--gray-600)">{{ item.product.brand }}</small>{% endif %}</td>
+              <td><code style="font-size:12px">{{ item.product.sku }}</code></td>
+              <td style="text-align:right">R {{ "%.2f"|format(item.unit_price) }}</td>
+              <td style="text-align:center">{{ item.quantity }}</td>
+              <td style="text-align:right"><strong>R {{ "%.2f"|format(item.total) }}</strong></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Totals -->
+      <div style="margin-left:auto;max-width:280px">
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-200);font-size:13px">
+          <span>Subtotal</span><span>R {{ "%.2f"|format(sale.subtotal) }}</span>
+        </div>
+        {% if sale.discount > 0 %}
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-200);font-size:13px;color:var(--warning)">
+          <span>Discount ({{ sale.discount }}%)</span><span>- R {{ "%.2f"|format(sale.subtotal * sale.discount / 100) }}</span>
+        </div>
+        {% endif %}
+        {% if sale.tax > 0 %}
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-200);font-size:13px">
+          <span>VAT</span><span>R {{ "%.2f"|format(sale.tax) }}</span>
+        </div>
+        {% endif %}
+        <div style="display:flex;justify-content:space-between;padding:12px 0;font-size:18px;font-weight:700;font-family:'Space Grotesk',sans-serif">
+          <span>TOTAL</span><span>R {{ "%.2f"|format(sale.total) }}</span>
+        </div>
+      </div>
+
+      {% if sale.notes %}
+      <div style="margin-top:20px;padding:12px;background:var(--gray-100);border-radius:8px;font-size:13px">
+        <strong>Notes:</strong> {{ sale.notes }}
+      </div>
+      {% endif %}
+
+      <div style="margin-top:28px;text-align:center;font-size:12px;color:var(--gray-600)">
+        Thank you for shopping at SwtchTech — Master Your Digital Universe
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
